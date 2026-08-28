@@ -31,6 +31,7 @@ function plugin_seiduplicatefilter_install(): bool
         $query = "CREATE TABLE `glpi_plugin_seiduplicatefilter_configs` (
             `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'suporte@ufcg.edu.br',
+            `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade',
             `is_active`      TINYINT NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB
@@ -39,9 +40,10 @@ function plugin_seiduplicatefilter_install(): bool
         $DB->doQuery($query);
 
         $DB->insert('glpi_plugin_seiduplicatefilter_configs', [
-            'id'           => 1,
-            'sender_email' => 'suporte@ufcg.edu.br',
-            'is_active'    => 1,
+            'id'              => 1,
+            'sender_email'    => 'suporte@ufcg.edu.br',
+            'subject_pattern' => 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade',
+            'is_active'       => 1,
         ]);
     }
 
@@ -97,6 +99,18 @@ function plugin_seiduplicatefilter_get_sender_email(): string
 }
 
 /**
+ * Retorna o padrão do assunto configurado.
+ */
+function plugin_seiduplicatefilter_get_subject_pattern(): string
+{
+    $config = new \GlpiPlugin\Seiduplicatefilter\Config();
+    if ($config->getFromDB(1)) {
+        return trim($config->fields['subject_pattern'] ?? 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade');
+    }
+    return 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade';
+}
+
+/**
  * Verifica se o plugin está ativo na configuração.
  */
 function plugin_seiduplicatefilter_is_active(): bool
@@ -123,22 +137,30 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
     $clean = trim(strip_tags(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
 
     /**
-     * Regex para capturar o número de processo SEI.
-     *
-     * Formato: XXXXX.XXXXXX/XXXX-XX
-     *   - 5 dígitos, ponto, 6 dígitos, barra, 4 dígitos, hífen, 2 dígitos
-     *
-     * O padrão é ancorado no prefixo "Processo nº" (case-insensitive)
-     * para evitar falsos positivos.
+     * Monta o Regex com base no padrão configurado pelo usuário.
+     * Substitui a tag [NUMERO_DO_PROCESSO] pelo regex que captura o formato.
      */
-    $pattern = '/Processo\s+n[ºo°]\s*(\d{5}\.\d{6}\/\d{4}-\d{2})/iu';
+    $subjectPattern = plugin_seiduplicatefilter_get_subject_pattern();
+    
+    // Se o usuário limpou o campo, usa um padrão genérico
+    if (empty($subjectPattern)) {
+        $subjectPattern = '[NUMERO_DO_PROCESSO]';
+    }
+
+    // Escapa o texto configurado para evitar quebras no Regex
+    $regexStr = preg_quote($subjectPattern, '/');
+    
+    // Substitui a tag escaped pela captura do formato numérico do processo
+    $regexStr = str_replace('\[NUMERO_DO_PROCESSO\]', '(\d{5}\.\d{6}\/\d{4}-\d{2})', $regexStr);
+
+    $pattern = '/' . $regexStr . '/iu';
 
     if (preg_match($pattern, $clean, $matches)) {
         return $matches[1];
     }
 
-    // Fallback: captura o padrão numérico mesmo sem o prefixo "Processo nº",
-    // caso o formato do e-mail sofra variações menores.
+    // Fallback: captura o padrão numérico mesmo sem o prefixo
+    // caso o formato do e-mail sofra variações não previstas.
     $fallbackPattern = '/(\d{5}\.\d{6}\/\d{4}-\d{2})/';
     if (preg_match($fallbackPattern, $clean, $matches)) {
         return $matches[1];
@@ -198,7 +220,7 @@ function plugin_seiduplicatefilter_log_blocked(
 ): void {
     global $DB;
 
-    // Log no sistema de arquivos do GLPI (files/_log/php-errors.log).
+    // Log no sistema de arquivos do GLPI (files/_log/seiduplicatefilter.log).
     Toolbox::logInFile(
         'seiduplicatefilter',
         sprintf(

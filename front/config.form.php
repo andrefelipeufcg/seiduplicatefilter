@@ -24,7 +24,11 @@ $config = new Config();
 // Processa POST de atualização.
 if (isset($_POST['update'])) {
     $config->check(1, UPDATE);
-    $config->update($_POST);
+    if ($config->update($_POST)) {
+        Session::addMessageAfterRedirect(__('Configuração salva com sucesso.', 'seiduplicatefilter'), false, INFO);
+    } else {
+        Session::addMessageAfterRedirect(__('Erro ao salvar configuração.', 'seiduplicatefilter'), false, ERROR);
+    }
     Html::back();
 }
 

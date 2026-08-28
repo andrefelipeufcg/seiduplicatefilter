@@ -85,6 +85,20 @@ class Config extends CommonDBTM
         echo '</small>';
         echo '</div></div>';
 
+        // Campo: Padrão do Assunto.
+        echo '<div class="mb-3 row">';
+        echo '<label class="col-sm-4 col-form-label">';
+        echo __('Padrão do Assunto (SEI)', 'seiduplicatefilter');
+        echo '</label>';
+        echo '<div class="col-sm-8">';
+        echo '<input type="text" class="form-control" name="subject_pattern" value="';
+        echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade');
+        echo '" required>';
+        echo '<small class="form-text text-muted">';
+        echo __('Use a tag <strong>[NUMERO_DO_PROCESSO]</strong> onde o número deve aparecer.', 'seiduplicatefilter');
+        echo '</small>';
+        echo '</div></div>';
+
         // Campo: Plugin ativo.
         echo '<div class="mb-3 row">';
         echo '<label class="col-sm-4 col-form-label">';
@@ -130,6 +144,14 @@ class Config extends CommonDBTM
                 ERROR
             );
             return false;
+        }
+
+        // Sanitiza o padrão do assunto.
+        if (isset($input['subject_pattern'])) {
+            $input['subject_pattern'] = trim($input['subject_pattern']);
+            if (empty($input['subject_pattern'])) {
+                $input['subject_pattern'] = 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade';
+            }
         }
 
         return $input;
