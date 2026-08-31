@@ -67,7 +67,7 @@ class Config extends CommonDBTM
 
         echo '<div class="card mx-auto mt-3" style="max-width: 700px;">';
         echo '<div class="card-header"><h3 class="card-title">';
-        echo __('Configuração — SEI Duplicate Filter', 'seiduplicatefilter');
+        echo __('Configuração: Filtro de Chamados Duplicados do SEI no GLPI', 'seiduplicatefilter');
         echo '</h3></div>';
         echo '<div class="card-body">';
 
@@ -78,7 +78,7 @@ class Config extends CommonDBTM
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="email" class="form-control" name="sender_email" value="';
-        echo htmlspecialchars($this->fields['sender_email'] ?? 'suporte@ufcg.edu.br');
+        echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
         echo '" required>';
         echo '<small class="form-text text-muted">';
         echo __('Apenas chamados oriundos deste endereço serão analisados.', 'seiduplicatefilter');
@@ -92,7 +92,7 @@ class Config extends CommonDBTM
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="text" class="form-control" name="subject_pattern" value="';
-        echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade');
+        echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade');
         echo '" required>';
         echo '<small class="form-text text-muted">';
         echo __('Use a tag <strong>[NUMERO_DO_PROCESSO]</strong> onde o número deve aparecer.', 'seiduplicatefilter');
@@ -150,7 +150,7 @@ class Config extends CommonDBTM
         if (isset($input['subject_pattern'])) {
             $input['subject_pattern'] = trim($input['subject_pattern']);
             if (empty($input['subject_pattern'])) {
-                $input['subject_pattern'] = 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade';
+                $input['subject_pattern'] = 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade';
             }
         }
 

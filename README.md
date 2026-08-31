@@ -5,7 +5,7 @@ Plugin para GLPI 11 que impede a criação de chamados duplicados originados pel
 ## Funcionalidade
 
 1. **Intercepta** a criação de tickets via hook `pre_item_add` (Ticket).
-2. **Verifica** se o e-mail de origem corresponde ao configurado (padrão: `suporte@ufcg.edu.br`).
+2. **Verifica** se o e-mail de origem corresponde ao configurado (padrão: `no-reply@ufcg.edu.br`).
 3. **Extrai** o número do processo SEI do título/corpo usando Regex (`Processo nº XXXXX.XXXXXX/XXXX-XX`).
 4. **Consulta** o banco para verificar se já existe um chamado aberto com o mesmo número de processo.
 5. **Bloqueia** silenciosamente a criação do chamado duplicado e registra no log.
@@ -20,7 +20,7 @@ Plugin para GLPI 11 que impede a criação de chamados duplicados originados pel
 
 Após ativação, acesse **Configurar > Plugins > SEI Duplicate Filter** para:
 
-- Definir o e-mail de origem (padrão: `suporte@ufcg.edu.br`).
+- Definir o e-mail de origem (padrão: `no-reply@ufcg.edu.br`).
 - Ativar/desativar o filtro.
 
 ## Logs

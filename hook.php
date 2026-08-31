@@ -30,8 +30,8 @@ function plugin_seiduplicatefilter_install(): bool
     if (!$DB->tableExists('glpi_plugin_seiduplicatefilter_configs')) {
         $query = "CREATE TABLE `glpi_plugin_seiduplicatefilter_configs` (
             `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'suporte@ufcg.edu.br',
-            `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade',
+            `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'no-reply@ufcg.edu.br',
+            `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade',
             `is_active`      TINYINT NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB
@@ -41,8 +41,8 @@ function plugin_seiduplicatefilter_install(): bool
 
         $DB->insert('glpi_plugin_seiduplicatefilter_configs', [
             'id'              => 1,
-            'sender_email'    => 'suporte@ufcg.edu.br',
-            'subject_pattern' => 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade',
+            'sender_email'    => 'no-reply@ufcg.edu.br',
+            'subject_pattern' => 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade',
             'is_active'       => 1,
         ]);
     }
@@ -93,9 +93,9 @@ function plugin_seiduplicatefilter_get_sender_email(): string
 {
     $config = new \GlpiPlugin\Seiduplicatefilter\Config();
     if ($config->getFromDB(1)) {
-        return trim($config->fields['sender_email'] ?? 'suporte@ufcg.edu.br');
+        return trim($config->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
     }
-    return 'suporte@ufcg.edu.br';
+    return 'no-reply@ufcg.edu.br';
 }
 
 /**
@@ -105,9 +105,9 @@ function plugin_seiduplicatefilter_get_subject_pattern(): string
 {
     $config = new \GlpiPlugin\Seiduplicatefilter\Config();
     if ($config->getFromDB(1)) {
-        return trim($config->fields['subject_pattern'] ?? 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade');
+        return trim($config->fields['subject_pattern'] ?? 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade');
     }
-    return 'SEI - Processo nº [NUMERO_DO_PROCESSO] enviado para esta Unidade';
+    return 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade';
 }
 
 /**
@@ -150,13 +150,18 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
     // Escapa o texto configurado para evitar quebras no Regex
     $regexStr = preg_quote($subjectPattern, '/');
     
-    // Substitui a tag escaped pela captura do formato numérico do processo
-    $regexStr = str_replace('\[NUMERO_DO_PROCESSO\]', '(\d{5}\.\d{6}\/\d{4}-\d{2})', $regexStr);
+    // Substitui a tag escaped por (.*?) para capturar tudo que vier no meio
+    $regexStr = str_replace('\[NUMERO_DO_PROCESSO\]', '(.*?)', $regexStr);
 
     $pattern = '/' . $regexStr . '/iu';
 
     if (preg_match($pattern, $clean, $matches)) {
-        return $matches[1];
+        // Extrai o conteúdo e remove qualquer caractere que não seja número, ponto, barra ou hífen
+        // Isso resolve o problema de caracteres como "º", "°" ou espaços em branco indesejados.
+        $processNumber = preg_replace('/[^\d\.\/\-]/', '', $matches[1]);
+        if (!empty($processNumber)) {
+            return $processNumber;
+        }
     }
 
     // Fallback: captura o padrão numérico mesmo sem o prefixo
