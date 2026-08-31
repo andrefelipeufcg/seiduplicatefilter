@@ -159,6 +159,8 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
         // Extrai o conteúdo e remove qualquer caractere que não seja número, ponto, barra ou hífen
         // Isso resolve o problema de caracteres como "º", "°" ou espaços em branco indesejados.
         $processNumber = preg_replace('/[^\d\.\/\-]/', '', $matches[1]);
+        // Remove pontuações acidentais que tenham ficado no início ou fim (ex: ".6" vira "6")
+        $processNumber = trim($processNumber, ".-/ ");
         if (!empty($processNumber)) {
             return $processNumber;
         }
@@ -190,6 +192,24 @@ function plugin_seiduplicatefilter_find_existing_ticket(string $processNumber): 
 {
     global $DB;
 
+    // Monta o título usando curingas '%' no lugar da tag para permitir flexibilidade no banco.
+    // Assim, se o padrão for "SEI - Processo n[NUMERO_DO_PROCESSO]enviado",
+    // ele vai buscar "%SEI - Processo n%7%enviado%", ignorando se no meio tem "º", "." ou espaços extras.
+    $subjectPattern = plugin_seiduplicatefilter_get_subject_pattern();
+    if (empty($subjectPattern)) {
+        $subjectPattern = '[NUMERO_DO_PROCESSO]';
+    }
+
+    // Separa o que vem antes e o que vem depois da tag
+    $parts  = explode('[NUMERO_DO_PROCESSO]', $subjectPattern);
+    $prefix = $parts[0] ?? '';
+    $suffix = $parts[1] ?? '';
+
+    // Monta a string de busca LIKE
+    $searchTitle = '%' . trim($prefix) . '%' . $processNumber . '%' . trim($suffix) . '%';
+    // Remove múltiplos '%' seguidos caso existam
+    $searchTitle = preg_replace('/%+/', '%', $searchTitle);
+
     // Usa o método seguro $DB->request() para evitar SQL Injection.
     // O GLPI abstrai o escape de parâmetros internamente.
     $iterator = $DB->request([
@@ -198,10 +218,7 @@ function plugin_seiduplicatefilter_find_existing_ticket(string $processNumber): 
         'WHERE'  => [
             'is_deleted' => 0,
             'NOT'        => ['status' => \CommonITILObject::CLOSED],
-            'OR'         => [
-                ['name'    => ['LIKE', '%' . $processNumber . '%']],
-                ['content' => ['LIKE', '%' . $processNumber . '%']],
-            ],
+            'name'       => ['LIKE', $searchTitle],
         ],
         'LIMIT'  => 1,
     ]);
@@ -229,7 +246,7 @@ function plugin_seiduplicatefilter_log_blocked(
     Toolbox::logInFile(
         'seiduplicatefilter',
         sprintf(
-            'Chamado duplicado BLOQUEADO — Processo SEI: %s | Ticket existente: #%d | Título rejeitado: %s',
+            'Chamado duplicado BLOQUEADO — Processo SEI: %s | Ticket existente: #%d | Título rejeitado: %s' . "\n",
             $processNumber,
             $existingTicketId,
             $blockedTitle
@@ -310,13 +327,23 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
         Toolbox::logInFile(
             'seiduplicatefilter',
             sprintf(
-                'E-mail de origem "%s" não corresponde ao configurado "%s" — chamado liberado.',
+                'E-mail de origem "%s" não corresponde ao configurado "%s" — chamado liberado.' . "\n",
                 $senderEmail,
                 $configuredEmail
             )
         );
         return;
     }
+
+    // Loga que o e-mail bateu com a configuração e está prosseguindo.
+    Toolbox::logInFile(
+        'seiduplicatefilter',
+        sprintf(
+            'E-mail de origem "%s" corresponde ao configurado "%s" — verificando chamado...' . "\n",
+            $senderEmail,
+            $configuredEmail
+        )
+    );
 
     // 4. Extrai o número de processo SEI do título e/ou corpo do e-mail.
     $title   = $input['name']    ?? '';
@@ -334,7 +361,7 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
         Toolbox::logInFile(
             'seiduplicatefilter',
             sprintf(
-                'Nenhum número de processo SEI encontrado no título "%s" — chamado liberado.',
+                'Nenhum número de processo SEI encontrado no título "%s" — chamado liberado.' . "\n",
                 $title
             )
         );
@@ -349,7 +376,7 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
         Toolbox::logInFile(
             'seiduplicatefilter',
             sprintf(
-                'Processo SEI %s — nenhum chamado duplicado encontrado. Criação permitida.',
+                'Processo SEI %s — nenhum chamado duplicado encontrado. Criação permitida.' . "\n",
                 $processNumber
             )
         );
