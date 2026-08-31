@@ -1,0 +1,49 @@
+<root>
+   <name>SEI Duplicate Filter</name>
+   <key>seiduplicatefilter</key>
+   <state>stable</state>
+   <logo>https://raw.githubusercontent.com/andrefelipeufcg/seiduplicatefilter/main/logo.png</logo>
+   <description>
+      <short>
+         <en>Blocks duplicate tickets originating from SEI.</en>
+         <pt_BR>Bloqueia a criação de chamados duplicados oriundos do SEI.</pt_BR>
+      </short>
+      <long>
+         <en>Plugin for GLPI that intercepts MailCollector and prevents the creation of duplicate tickets for the same SEI process.</en>
+         <pt_BR>Plugin para GLPI que atua no MailCollector bloqueando a criação de múltiplos chamados para o mesmo número de processo do SEI.</pt_BR>
+      </long>
+   </description>
+   <homepage>https://github.com/andrefelipeufcg/seiduplicatefilter</homepage>
+   <download>https://github.com/andrefelipeufcg/seiduplicatefilter/releases</download>
+   <issues>https://github.com/andrefelipeufcg/seiduplicatefilter/issues</issues>
+   <readme>https://github.com/andrefelipeufcg/seiduplicatefilter/blob/main/README.md</readme>
+   <changelog>https://github.com/andrefelipeufcg/seiduplicatefilter/releases</changelog>
+   <authors>
+      <author>Andre Felipe</author>
+   </authors>
+   <versions>
+      <version>
+         <num>1.0.0</num>
+         <compatibility>&gt;=11.0.0</compatibility>
+         <download_url>https://github.com/andrefelipeufcg/seiduplicatefilter/releases/download/v1.0.0/glpi-seiduplicatefilter-v1.0.0.zip</download_url>
+      </version>
+   </versions>
+   <langs>
+      <lang>pt_BR</lang>
+   </langs>
+   <license>GPL v3+</license>
+   <tags>
+      <en>
+         <tag>sei</tag>
+         <tag>mailcollector</tag>
+         <tag>filter</tag>
+         <tag>duplicate</tag>
+      </en>
+      <pt_BR>
+         <tag>sei</tag>
+         <tag>mailcollector</tag>
+         <tag>filtro</tag>
+         <tag>duplicado</tag>
+      </pt_BR>
+   </tags>
+</root>
