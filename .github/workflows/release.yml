@@ -54,7 +54,7 @@ jobs:
           git add setup.php plugin.xml
           if ! git diff-index --quiet HEAD; then
             git commit -m "chore: auto-bump version to ${VERSION} [skip ci]"
-            git push origin chore/bump-v${VERSION}
+            git push -f origin chore/bump-v${VERSION}
             
             # Move the tag to the new commit containing the updated versions
             git tag -f v${VERSION}
