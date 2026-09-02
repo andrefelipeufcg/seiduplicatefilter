@@ -31,7 +31,7 @@ function plugin_seiduplicatefilter_install(): bool
         $query = "CREATE TABLE `glpi_plugin_seiduplicatefilter_configs` (
             `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'no-reply@ufcg.edu.br',
-            `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade',
+            `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo n',
             `is_active`      TINYINT NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB
@@ -42,7 +42,7 @@ function plugin_seiduplicatefilter_install(): bool
         $DB->insert('glpi_plugin_seiduplicatefilter_configs', [
             'id'              => 1,
             'sender_email'    => 'no-reply@ufcg.edu.br',
-            'subject_pattern' => 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade',
+            'subject_pattern' => 'SEI - Processo n',
             'is_active'       => 1,
         ]);
     }
@@ -105,9 +105,9 @@ function plugin_seiduplicatefilter_get_subject_pattern(): string
 {
     $config = new \GlpiPlugin\Seiduplicatefilter\Config();
     if ($config->getFromDB(1)) {
-        return trim($config->fields['subject_pattern'] ?? 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade');
+        return trim($config->fields['subject_pattern'] ?? 'SEI - Processo n');
     }
-    return 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade';
+    return 'SEI - Processo n';
 }
 
 /**
@@ -138,22 +138,20 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
 
     /**
      * Monta o Regex com base no padrão configurado pelo usuário.
-     * Substitui a tag [NUMERO_DO_PROCESSO] pelo regex que captura o formato.
+     * Captura tudo que for número e formatação logo após o prefixo.
      */
-    $subjectPattern = plugin_seiduplicatefilter_get_subject_pattern();
+    $prefix = plugin_seiduplicatefilter_get_subject_pattern();
     
     // Se o usuário limpou o campo, usa um padrão genérico
-    if (empty($subjectPattern)) {
-        $subjectPattern = '[NUMERO_DO_PROCESSO]';
+    if (empty($prefix)) {
+        $prefix = 'SEI - Processo n';
     }
 
     // Escapa o texto configurado para evitar quebras no Regex
-    $regexStr = preg_quote($subjectPattern, '/');
+    $escapedPrefix = preg_quote($prefix, '/');
     
-    // Substitui a tag escaped por (.*?) para capturar tudo que vier no meio
-    $regexStr = str_replace('\[NUMERO_DO_PROCESSO\]', '(.*?)', $regexStr);
-
-    $pattern = '/' . $regexStr . '/iu';
+    // Procura o prefixo, ignora símbolos não numéricos (como "º", "." ou espaços) e captura o formato do número
+    $pattern = '/' . $escapedPrefix . '[^\d]*([\d\.\/\-]+)/iu';
 
     if (preg_match($pattern, $clean, $matches)) {
         // Extrai o conteúdo e remove qualquer caractere que não seja número, ponto, barra ou hífen
@@ -192,21 +190,14 @@ function plugin_seiduplicatefilter_find_existing_ticket(string $processNumber): 
 {
     global $DB;
 
-    // Monta o título usando curingas '%' no lugar da tag para permitir flexibilidade no banco.
-    // Assim, se o padrão for "SEI - Processo n[NUMERO_DO_PROCESSO]enviado",
-    // ele vai buscar "%SEI - Processo n%7%enviado%", ignorando se no meio tem "º", "." ou espaços extras.
-    $subjectPattern = plugin_seiduplicatefilter_get_subject_pattern();
-    if (empty($subjectPattern)) {
-        $subjectPattern = '[NUMERO_DO_PROCESSO]';
+    // Monta o título usando curingas '%' no lugar do prefixo para permitir flexibilidade no banco.
+    $prefix = plugin_seiduplicatefilter_get_subject_pattern();
+    if (empty($prefix)) {
+        $prefix = 'SEI - Processo n';
     }
 
-    // Separa o que vem antes e o que vem depois da tag
-    $parts  = explode('[NUMERO_DO_PROCESSO]', $subjectPattern);
-    $prefix = $parts[0] ?? '';
-    $suffix = $parts[1] ?? '';
-
     // Monta a string de busca LIKE
-    $searchTitle = '%' . trim($prefix) . '%' . $processNumber . '%' . trim($suffix) . '%';
+    $searchTitle = '%' . trim($prefix) . '%' . $processNumber . '%';
     // Remove múltiplos '%' seguidos caso existam
     $searchTitle = preg_replace('/%+/', '%', $searchTitle);
 

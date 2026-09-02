@@ -46,14 +46,18 @@ jobs:
             sed -i "s|<versions>|<versions>\n${NEW_VERSION_BLOCK}|" plugin.xml
           fi
           
-          # Commit and push to main
+          # Create branch, commit and open PR
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b chore/bump-v${VERSION}
           git add setup.php plugin.xml
           if ! git diff-index --quiet HEAD; then
             git commit -m "chore: auto-bump version to ${VERSION} [skip ci]"
-            git push origin main
+            git push origin chore/bump-v${VERSION}
+            gh pr create --title "chore: auto-bump version to ${VERSION}" --body "Automated version bump for release v${VERSION}." --base main --head chore/bump-v${VERSION}
           fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build release ZIP
         run: |
@@ -80,5 +84,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ steps.version.outputs.tag }}
           files: glpi-seiduplicatefilter-v${{ steps.version.outputs.tag }}.zip
           generate_release_notes: true

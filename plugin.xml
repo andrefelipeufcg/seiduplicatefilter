@@ -46,4 +46,7 @@
          <tag>duplicado</tag>
       </pt_BR>
    </tags>
+   <screenshots>
+      <screenshot>https://raw.githubusercontent.com/andrefelipeufcg/seiduplicatefilter/main/img/screenshot1.png</screenshot>
+   </screenshots>
 </root>

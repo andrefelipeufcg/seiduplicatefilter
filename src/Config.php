@@ -81,21 +81,21 @@ class Config extends CommonDBTM
         echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
         echo '" required>';
         echo '<small class="form-text text-muted">';
-        echo __('Apenas chamados oriundos deste endereço serão analisados.', 'seiduplicatefilter');
+        echo __('Apenas chamados vindos deste endereço serão analisados.', 'seiduplicatefilter');
         echo '</small>';
         echo '</div></div>';
 
         // Campo: Padrão do Assunto.
         echo '<div class="mb-3 row">';
         echo '<label class="col-sm-4 col-form-label">';
-        echo __('Padrão do Assunto (SEI)', 'seiduplicatefilter');
+        echo __('Assunto iniciando com:', 'seiduplicatefilter');
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="text" class="form-control" name="subject_pattern" value="';
-        echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade');
+        echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo n');
         echo '" required>';
         echo '<small class="form-text text-muted">';
-        echo __('Use a tag <strong>[NUMERO_DO_PROCESSO]</strong> onde o número deve aparecer.', 'seiduplicatefilter');
+        echo __('Coloque exatamente o que está no início do assunto do e-mail. Exemplo: "SEI - Processo n"', 'seiduplicatefilter');
         echo '</small>';
         echo '</div></div>';
 
@@ -150,7 +150,7 @@ class Config extends CommonDBTM
         if (isset($input['subject_pattern'])) {
             $input['subject_pattern'] = trim($input['subject_pattern']);
             if (empty($input['subject_pattern'])) {
-                $input['subject_pattern'] = 'SEI - Processo n[NUMERO_DO_PROCESSO]enviado para esta Unidade';
+                $input['subject_pattern'] = 'SEI - Processo n';
             }
         }
 
