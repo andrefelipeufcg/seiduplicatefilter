@@ -54,6 +54,11 @@ jobs:
           if ! git diff-index --quiet HEAD; then
             git commit -m "chore: auto-bump version to ${VERSION} [skip ci]"
             git push origin chore/bump-v${VERSION}
+            
+            # Move the tag to the new commit containing the updated versions
+            git tag -f v${VERSION}
+            git push origin -f refs/tags/v${VERSION}
+            
             gh pr create --title "chore: auto-bump version to ${VERSION}" --body "Automated version bump for release v${VERSION}." --base main --head chore/bump-v${VERSION}
           fi
         env:
