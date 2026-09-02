@@ -150,8 +150,8 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
     // Escapa o texto configurado para evitar quebras no Regex
     $escapedPrefix = preg_quote($prefix, '/');
     
-    // Procura o prefixo e captura o formato do número
-    $pattern = '/' . $escapedPrefix . '\s*([\d\.\/\-]+)/iu';
+    // Procura o prefixo, ignora símbolos não numéricos (como "º", "." ou espaços) e captura o formato do número
+    $pattern = '/' . $escapedPrefix . '[^\d]*([\d\.\/\-]+)/iu';
 
     if (preg_match($pattern, $clean, $matches)) {
         // Extrai o conteúdo e remove qualquer caractere que não seja número, ponto, barra ou hífen
