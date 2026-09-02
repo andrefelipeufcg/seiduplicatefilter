@@ -80,5 +80,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ steps.version.outputs.tag }}
           files: glpi-seiduplicatefilter-v${{ steps.version.outputs.tag }}.zip
           generate_release_notes: true
