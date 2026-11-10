@@ -24,7 +24,7 @@ function plugin_init_seiduplicatefilter(): void
 {
     global $PLUGIN_HOOKS;
 
-    $PLUGIN_HOOKS[Hooks::CSRF_COMPLIANT]['seiduplicatefilter'] = true;
+    $PLUGIN_HOOKS['csrf_compliant']['seiduplicatefilter'] = true;
 
     // Carrega o arquivo de hooks (install, uninstall, callback).
     include_once(__DIR__ . '/hook.php');
@@ -46,10 +46,6 @@ function plugin_init_seiduplicatefilter(): void
     // Página de configuração acessível em Configurar > Plugins.
     $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['seiduplicatefilter'] = 'front/config.form.php';
 
-    // Registra a classe de configuração para exibição na aba do plugin.
-    Plugin::registerClass(\GlpiPlugin\Seiduplicatefilter\Config::class, [
-        'addtabon' => ['Config'],
-    ]);
 }
 
 /**
