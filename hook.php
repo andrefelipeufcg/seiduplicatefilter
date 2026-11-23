@@ -9,8 +9,6 @@
  * @license  GPLv3+
  */
 
-use Glpi\Toolbox\Sanitizer;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Instalação / Desinstalação
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +28,7 @@ function plugin_seiduplicatefilter_install(): bool
     if (!$DB->tableExists('glpi_plugin_seiduplicatefilter_configs')) {
         $query = "CREATE TABLE `glpi_plugin_seiduplicatefilter_configs` (
             `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'no-reply@ufcg.edu.br',
+            `sender_email`   VARCHAR(255) NOT NULL DEFAULT 'no-reply@sei.gov.br',
             `subject_pattern` VARCHAR(255) NOT NULL DEFAULT 'SEI - Processo n',
             `is_active`      TINYINT NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`)
@@ -41,7 +39,7 @@ function plugin_seiduplicatefilter_install(): bool
 
         $DB->insert('glpi_plugin_seiduplicatefilter_configs', [
             'id'              => 1,
-            'sender_email'    => 'no-reply@ufcg.edu.br',
+            'sender_email'    => 'no-reply@sei.gov.br',
             'subject_pattern' => 'SEI - Processo n',
             'is_active'       => 1,
         ]);
@@ -86,16 +84,21 @@ function plugin_seiduplicatefilter_uninstall(): bool
 // Funções auxiliares
 // ─────────────────────────────────────────────────────────────────────────────
 
+function plugin_seiduplicatefilter_log_safe(string $value): string
+{
+    return str_replace(["\r", "\n"], ' ', $value);
+}
+
 /**
- * Retorna o e-mail do remetente configurado (padrão: suporte@ufcg.edu.br).
+ * Retorna o e-mail do remetente configurado (padrão: no-reply@sei.gov.br).
  */
 function plugin_seiduplicatefilter_get_sender_email(): string
 {
     $config = new \GlpiPlugin\Seiduplicatefilter\Config();
     if ($config->getFromDB(1)) {
-        return trim($config->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
+        return trim($config->fields['sender_email'] ?? 'no-reply@sei.gov.br');
     }
-    return 'no-reply@ufcg.edu.br';
+    return 'no-reply@sei.gov.br';
 }
 
 /**
@@ -150,23 +153,16 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
     // Escapa o texto configurado para evitar quebras no Regex
     $escapedPrefix = preg_quote($prefix, '/');
     
-    // Procura o prefixo, ignora símbolos não numéricos (como "º", "." ou espaços) e captura o formato do número
-    $pattern = '/' . $escapedPrefix . '[^\d]*([\d\.\/\-]+)/iu';
+    // Aceita somente números completos para evitar bloquear processos diferentes.
+    $pattern = '/' . $escapedPrefix . '[^\d\r\n]*?(\d{5}\.\d{6}\/\d{4}-\d{2})(?!\d)/iu';
 
     if (preg_match($pattern, $clean, $matches)) {
-        // Extrai o conteúdo e remove qualquer caractere que não seja número, ponto, barra ou hífen
-        // Isso resolve o problema de caracteres como "º", "°" ou espaços em branco indesejados.
-        $processNumber = preg_replace('/[^\d\.\/\-]/', '', $matches[1]);
-        // Remove pontuações acidentais que tenham ficado no início ou fim (ex: ".6" vira "6")
-        $processNumber = trim($processNumber, ".-/ ");
-        if (!empty($processNumber)) {
-            return $processNumber;
-        }
+        return $matches[1];
     }
 
     // Fallback: captura o padrão numérico mesmo sem o prefixo
     // caso o formato do e-mail sofra variações não previstas.
-    $fallbackPattern = '/(\d{5}\.\d{6}\/\d{4}-\d{2})/';
+    $fallbackPattern = '/(?<!\d)(\d{5}\.\d{6}\/\d{4}-\d{2})(?!\d)/';
     if (preg_match($fallbackPattern, $clean, $matches)) {
         return $matches[1];
     }
@@ -240,7 +236,7 @@ function plugin_seiduplicatefilter_log_blocked(
             'Chamado duplicado BLOQUEADO — Processo SEI: %s | Ticket existente: #%d | Título rejeitado: %s' . "\n",
             $processNumber,
             $existingTicketId,
-            $blockedTitle
+            plugin_seiduplicatefilter_log_safe($blockedTitle)
         )
     );
 
@@ -262,7 +258,7 @@ function plugin_seiduplicatefilter_log_blocked(
  * Fluxo:
  * 1. Verifica se o plugin está ativo.
  * 2. Verifica se o chamado vem do MailCollector (campo _mailgate presente).
- * 3. Verifica se o e-mail de origem é o configurado (padrão: suporte@ufcg.edu.br).
+ * 3. Verifica se o e-mail de origem é o configurado (padrão: no-reply@sei.gov.br).
  * 4. Extrai o número de processo SEI do título ou corpo.
  * 5. Consulta o banco para verificar duplicidade.
  * 6. Cancela a criação definindo $item->input = false se duplicado.
@@ -286,7 +282,7 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
     // 2. Verifica se o chamado é proveniente do MailCollector.
     //    O campo '_mailgate' é preenchido pelo GLPI quando o ticket
     //    é criado a partir de um e-mail coletado pelo MailCollector.
-    if (!isset($input['_mailgate']) || (int) $input['_mailgate'] <= 0) {
+    if (!is_array($input) || !isset($input['_mailgate']) || (int) $input['_mailgate'] <= 0) {
         // Chamado criado manualmente — não interceptar.
         return;
     }
@@ -297,11 +293,11 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
     $senderEmail = '';
 
     // Tenta obter o e-mail do remetente de diferentes locais do input.
-    if (isset($input['_head']['from'])) {
+    if (isset($input['_head']['from']) && is_string($input['_head']['from'])) {
         $senderEmail = $input['_head']['from'];
-    } elseif (isset($input['_sender'])) {
+    } elseif (isset($input['_sender']) && is_string($input['_sender'])) {
         $senderEmail = $input['_sender'];
-    } elseif (isset($input['_from'])) {
+    } elseif (isset($input['_from']) && is_string($input['_from'])) {
         $senderEmail = $input['_from'];
     }
 
@@ -319,7 +315,7 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
             'seiduplicatefilter',
             sprintf(
                 'E-mail de origem "%s" não corresponde ao configurado "%s" — chamado liberado.' . "\n",
-                $senderEmail,
+                plugin_seiduplicatefilter_log_safe($senderEmail),
                 $configuredEmail
             )
         );
@@ -331,14 +327,14 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
         'seiduplicatefilter',
         sprintf(
             'E-mail de origem "%s" corresponde ao configurado "%s" — verificando chamado...' . "\n",
-            $senderEmail,
+            plugin_seiduplicatefilter_log_safe($senderEmail),
             $configuredEmail
         )
     );
 
     // 4. Extrai o número de processo SEI do título e/ou corpo do e-mail.
-    $title   = $input['name']    ?? '';
-    $content = $input['content'] ?? '';
+    $title   = is_string($input['name'] ?? null) ? $input['name'] : '';
+    $content = is_string($input['content'] ?? null) ? $input['content'] : '';
 
     $processNumber = plugin_seiduplicatefilter_extract_process_number($title);
 
@@ -353,7 +349,7 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
             'seiduplicatefilter',
             sprintf(
                 'Nenhum número de processo SEI encontrado no título "%s" — chamado liberado.' . "\n",
-                $title
+                plugin_seiduplicatefilter_log_safe($title)
             )
         );
         return;

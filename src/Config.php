@@ -86,7 +86,7 @@ class Config extends ConfigBase
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="email" class="form-control" name="sender_email" value="';
-        echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
+        echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@sei.gov.br');
         echo '" required>';
         echo '<small class="form-text text-muted">';
         echo __('Apenas chamados vindos deste endereço serão analisados.', 'seiduplicatefilter');

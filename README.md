@@ -1,14 +1,16 @@
-# SEI Duplicate Filter — Plugin GLPI 11
+# SEI Duplicate Filter — Plugin GLPI 11/12
 
-Plugin para GLPI 11 que impede a criação de chamados duplicados originados pelo **Sistema Eletrônico de Informações (SEI)** via MailCollector.
+Plugin que impede a criação de chamados duplicados originados pelo **Sistema Eletrônico de Informações (SEI)** via MailCollector.
+
+O requisito declarado é GLPI 11 ou superior e PHP 8.2 ou superior. A branch mais atual inclui adaptações para o GLPI 12.
 
 ## Funcionalidade
 
 1. **Intercepta** a criação de tickets via hook `pre_item_add` (Ticket).
 2. **Verifica** se o e-mail de origem corresponde ao configurado (padrão: `no-reply@sei.gov.br`).
-3. **Extrai** o número do processo SEI capturando a numeração que vier logo após o prefixo configurado no título (ex: `SEI - Processo n`).
+3. **Extrai** um número de processo completo no formato `00000.000000/0000-00` do título ou corpo; se o prefixo configurado não for encontrado, procura o formato diretamente.
 4. **Consulta** o banco para verificar se já existe um chamado aberto com o mesmo número de processo.
-5. **Bloqueia** silenciosamente a criação do chamado duplicado e registra no log.
+5. **Bloqueia** a criação do chamado duplicado e registra o bloqueio no log.
 
 ## Instalação
 
@@ -29,6 +31,8 @@ Após ativação, acesse **Configurar > Plugins > SEI Duplicate Filter** para:
 Os registros de chamados bloqueados são gravados em:
 - **Arquivo:** `files/_log/seiduplicatefilter.log`
 - **Tabela:** `glpi_plugin_seiduplicatefilter_logs`
+
+Nos códigos do GLPI 11.0.11 e 12.0.2, o cancelamento da criação pelo plugin é tratado pelo coletor como falha de importação: o erro é contabilizado, o e-mail é registrado como não importado e encaminhado para a pasta de recusados. Assim, o chamado duplicado não é criado, mas o bloqueio pode aparecer como erro na coleta.
 
 ## Estrutura
 

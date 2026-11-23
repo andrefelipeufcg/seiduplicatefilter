@@ -16,6 +16,7 @@ use Glpi\Plugin\Hooks;
 
 define('PLUGIN_SEIDUPLICATEFILTER_VERSION', '1.0.1');
 define('PLUGIN_SEIDUPLICATEFILTER_MIN_GLPI', '11.0.0');
+define('PLUGIN_SEIDUPLICATEFILTER_MAX_GLPI', '12.0.99');
 
 /**
  * Inicialização do plugin — registra hooks e classes.
@@ -62,6 +63,7 @@ function plugin_version_seiduplicatefilter(): array
         'requirements' => [
             'glpi' => [
                 'min' => PLUGIN_SEIDUPLICATEFILTER_MIN_GLPI,
+                'max' => PLUGIN_SEIDUPLICATEFILTER_MAX_GLPI,
             ],
             'php' => [
                 'min' => '8.2',
@@ -71,12 +73,16 @@ function plugin_version_seiduplicatefilter(): array
 }
 
 /**
- * Verifica se a versão mínima do GLPI é satisfeita.
+ * Verifica se a versão do GLPI está dentro dos limites suportados.
  */
 function plugin_seiduplicatefilter_check_prerequisites(): bool
 {
     if (version_compare(GLPI_VERSION, PLUGIN_SEIDUPLICATEFILTER_MIN_GLPI, '<')) {
         echo 'Este plugin requer GLPI >= ' . PLUGIN_SEIDUPLICATEFILTER_MIN_GLPI;
+        return false;
+    }
+    if (version_compare(GLPI_VERSION, PLUGIN_SEIDUPLICATEFILTER_MAX_GLPI, '>')) {
+        echo 'Este plugin requer GLPI <= ' . PLUGIN_SEIDUPLICATEFILTER_MAX_GLPI;
         return false;
     }
     return true;
