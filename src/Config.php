@@ -19,17 +19,25 @@ use CommonDBTM;
 use Session;
 use Html;
 
-class Config extends CommonDBTM
+// GLPI 12 exige $rightname tipada (string); GLPI 10/11 proíbe o tipo.
+if ((new \ReflectionProperty(CommonDBTM::class, 'rightname'))->hasType()) {
+    abstract class ConfigBase extends CommonDBTM
+    {
+        public static string $rightname = 'config';
+    }
+} else {
+    abstract class ConfigBase extends CommonDBTM
+    {
+        public static $rightname = 'config';
+    }
+}
+
+class Config extends ConfigBase
 {
     /**
      * Tabela do banco de dados associada.
      */
     public static $table = 'glpi_plugin_seiduplicatefilter_configs';
-
-    /**
-     * Direito necessário para acessar a configuração.
-     */
-    public static $rightname = 'config';
 
     /**
      * Exibe o nome na aba de configuração.
@@ -78,7 +86,7 @@ class Config extends CommonDBTM
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="email" class="form-control" name="sender_email" value="';
-        echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@ufcg.edu.br');
+        echo htmlspecialchars($this->fields['sender_email'] ?? 'no-reply@sei.gov.br');
         echo '" required>';
         echo '<small class="form-text text-muted">';
         echo __('Apenas chamados vindos deste endereço serão analisados.', 'seiduplicatefilter');
