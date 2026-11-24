@@ -177,7 +177,7 @@ function plugin_seiduplicatefilter_extract_process_number(string $text): ?string
  * Chamados "abertos" são aqueles com status diferente de:
  *   - CLOSED (6)
  *
- * A busca é feita no título (name) e no conteúdo (content) do chamado.
+ * A busca é feita no título (name) do chamado.
  *
  * @param string $processNumber Número do processo SEI (ex: 23096.058513/2026-31).
  * @return int|null ID do chamado existente ou null se nenhum encontrado.
@@ -186,33 +186,22 @@ function plugin_seiduplicatefilter_find_existing_ticket(string $processNumber): 
 {
     global $DB;
 
-    // Monta o título usando curingas '%' no lugar do prefixo para permitir flexibilidade no banco.
-    $prefix = plugin_seiduplicatefilter_get_subject_pattern();
-    if (empty($prefix)) {
-        $prefix = 'SEI - Processo n';
-    }
-
-    // Monta a string de busca LIKE
-    $searchTitle = '%' . trim($prefix) . '%' . $processNumber . '%';
-    // Remove múltiplos '%' seguidos caso existam
-    $searchTitle = preg_replace('/%+/', '%', $searchTitle);
-
-    // Usa o método seguro $DB->request() para evitar SQL Injection.
-    // O GLPI abstrai o escape de parâmetros internamente.
+    // O LIKE limita os candidatos; a verificação abaixo exige o número completo.
     $iterator = $DB->request([
-        'SELECT' => ['id'],
+        'SELECT' => ['id', 'name'],
         'FROM'   => 'glpi_tickets',
         'WHERE'  => [
             'is_deleted' => 0,
             'NOT'        => ['status' => \CommonITILObject::CLOSED],
-            'name'       => ['LIKE', $searchTitle],
+            'name'       => ['LIKE', '%' . $processNumber . '%'],
         ],
-        'LIMIT'  => 1,
     ]);
 
-    if (count($iterator) > 0) {
-        $row = $iterator->current();
-        return (int) $row['id'];
+    $pattern = '/(?<!\d)' . preg_quote($processNumber, '/') . '(?!\d)/';
+    foreach ($iterator as $row) {
+        if (preg_match($pattern, $row['name'])) {
+            return (int) $row['id'];
+        }
     }
 
     return null;
@@ -259,7 +248,7 @@ function plugin_seiduplicatefilter_log_blocked(
  * 1. Verifica se o plugin está ativo.
  * 2. Verifica se o chamado vem do MailCollector (campo _mailgate presente).
  * 3. Verifica se o e-mail de origem é o configurado (padrão: no-reply@sei.gov.br).
- * 4. Extrai o número de processo SEI do título ou corpo.
+ * 4. Verifica o assunto configurado e extrai o número do título ou corpo.
  * 5. Consulta o banco para verificar duplicidade.
  * 6. Cancela a criação definindo $item->input = false se duplicado.
  *
@@ -335,6 +324,15 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
     // 4. Extrai o número de processo SEI do título e/ou corpo do e-mail.
     $title   = is_string($input['name'] ?? null) ? $input['name'] : '';
     $content = is_string($input['content'] ?? null) ? $input['content'] : '';
+
+    $subjectPattern = plugin_seiduplicatefilter_get_subject_pattern();
+    if ($subjectPattern === '') {
+        $subjectPattern = 'SEI - Processo n';
+    }
+    $cleanTitle = html_entity_decode(strip_tags($title), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    if (!preg_match('/' . preg_quote($subjectPattern, '/') . '/iu', $cleanTitle)) {
+        return;
+    }
 
     $processNumber = plugin_seiduplicatefilter_extract_process_number($title);
 

@@ -8,8 +8,8 @@ O requisito declarado é GLPI 11 ou superior e PHP 8.2 ou superior. A branch mai
 
 1. **Intercepta** a criação de tickets via hook `pre_item_add` (Ticket).
 2. **Verifica** se o e-mail de origem corresponde ao configurado (padrão: `no-reply@sei.gov.br`).
-3. **Extrai** um número de processo completo no formato `00000.000000/0000-00` do título ou corpo; se o prefixo configurado não for encontrado, procura o formato diretamente.
-4. **Consulta** o banco para verificar se já existe um chamado aberto com o mesmo número de processo.
+3. **Verifica** se o assunto contém o texto configurado e extrai um número de processo completo no formato `00000.000000/0000-00` do título ou corpo.
+4. **Consulta** os títulos dos chamados abertos pelo número completo do processo, independentemente do restante do título.
 5. **Bloqueia** a criação do chamado duplicado e registra o bloqueio no log.
 
 ## Instalação
