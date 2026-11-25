@@ -331,6 +331,14 @@ function plugin_seiduplicatefilter_pre_item_add(CommonDBTM $item): void
     }
     $cleanTitle = html_entity_decode(strip_tags($title), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     if (!preg_match('/' . preg_quote($subjectPattern, '/') . '/iu', $cleanTitle)) {
+        Toolbox::logInFile(
+            'seiduplicatefilter',
+            sprintf(
+                'Assunto "%s" não contém o texto configurado "%s" — duplicidade não verificada. Criação permitida.' . "\n",
+                plugin_seiduplicatefilter_log_safe($title),
+                plugin_seiduplicatefilter_log_safe($subjectPattern)
+            )
+        );
         return;
     }
 
