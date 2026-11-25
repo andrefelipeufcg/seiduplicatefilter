@@ -96,14 +96,14 @@ class Config extends ConfigBase
         // Campo: Padrão do Assunto.
         echo '<div class="mb-3 row">';
         echo '<label class="col-sm-4 col-form-label">';
-        echo __('Assunto iniciando com:', 'seiduplicatefilter');
+        echo __('Texto contido no assunto:', 'seiduplicatefilter');
         echo '</label>';
         echo '<div class="col-sm-8">';
         echo '<input type="text" class="form-control" name="subject_pattern" value="';
         echo htmlspecialchars($this->fields['subject_pattern'] ?? 'SEI - Processo n');
         echo '" required>';
         echo '<small class="form-text text-muted">';
-        echo __('Coloque exatamente o que está no início do assunto do e-mail. Exemplo: "SEI - Processo n"', 'seiduplicatefilter');
+        echo __('Informe um trecho que deve aparecer em qualquer posição do assunto, sem diferenciar maiúsculas de minúsculas. Exemplo: "Processo n" corresponde tanto a "SEI - Processo nº ..." quanto a "Processo nº ...".', 'seiduplicatefilter');
         echo '</small>';
         echo '</div></div>';
 

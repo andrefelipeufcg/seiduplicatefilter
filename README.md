@@ -23,8 +23,10 @@ O requisito declarado é GLPI 11 ou superior e PHP 8.2 ou superior. A branch mai
 Após ativação, acesse **Configurar > Plugins > SEI Duplicate Filter** para:
 
 - Definir o e-mail de origem (padrão: `no-reply@sei.gov.br`).
-- Definir o prefixo exato que antecede o número do processo no assunto do e-mail (padrão: `SEI - Processo n`).
+- Definir um texto que deve estar contido no assunto do e-mail, em qualquer posição e sem diferenciar maiúsculas de minúsculas (padrão: `SEI - Processo n`).
 - Ativar/desativar o filtro.
+
+Por exemplo, o texto `Processo n` corresponde tanto a `SEI - Processo nº ...` quanto a `Processo nº ...`. Já `SEI - Processo n` restringe a análise aos assuntos que contêm esse trecho completo. Assuntos que não contêm o texto configurado são liberados sem verificar duplicidade, com o motivo registrado no log.
 
 ## Logs
 
